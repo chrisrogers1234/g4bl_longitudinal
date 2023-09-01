@@ -124,6 +124,8 @@ class G4BLExecution:
                     stdout=logfile, stderr=subprocess.STDOUT)
         print("   ... completed with return code", proc.returncode)
         os.chdir(cwd)
+        if proc.returncode:
+            raise RuntimeError("G4BL did not execute successfully")
 
 class G4BLLinac:
     def __init__(self, lattice_filename):
@@ -136,6 +138,8 @@ class G4BLLinac:
         self.z_spacing = 100.0 # mm
         self.min_z = 0.0 # mm
         self.max_z = 10000.0 # mm
+        self.max_step = 100.0 # mm
+        self.eps_max = 0.01
         self.output_file = "output_data" # g4bl puts this in the run directory and adds ".txt" as suffix
         self.cleanup_dir = True
 
@@ -145,7 +149,8 @@ class G4BLLinac:
     def build_topmatter(self):
         topmatter = f"physics default doStochastics={self.do_stochastics}\n"
         topmatter += f"zntuple cooling_monitor zloop={self.min_z}:{self.max_z}:{self.z_spacing} format=for009 file=output_data coordinates=c\n"
-        topmatter += "param epsMax=0.01\n" # g4bl bug
+        topmatter += f"param epsMax={self.eps_max}\n" # g4bl bug
+        topmatter += f"param maxStep={self.max_step}\n" # g4bl bug
         self.lattice_file.write(topmatter)
 
     def build_reference(self):
